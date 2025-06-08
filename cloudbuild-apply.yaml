@@ -8,6 +8,6 @@ steps:
     - 'infra-manager'
     - 'deployments'
     - 'apply'
-    - 'projects/id-thoughtparameters/locations/us-central1/deployments/thoughtman-infrastructure'
+    - 'projects/id-thoughtparameters/locations/us-central1/deployments/thoughtman-deployment'
     - '--service-account=projects/id-thoughtparameters/serviceAccounts/infra-manager-sa@id-thoughtparameters.iam.gserviceaccount.com'
     - '--git-source-commit=${COMMIT_SHA}'
