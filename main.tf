@@ -122,7 +122,7 @@ module "gke" {
   subnetwork_id = module.vpc.subnetwork_id
   cluster_name  = "thoughtman-gke-cluster"
   project_id    = var.gcp_project_id
-  master_ipv4_cidr_block = "237.84.2.176/28"
+  master_ipv4_cidr_block = "172.16.0.0/28"
 
   # This module depends on the GKE API being enabled first.
   depends_on    = [google_project_service.gke_api, module.vpc]
