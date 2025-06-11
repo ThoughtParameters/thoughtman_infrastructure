@@ -1,0 +1,29 @@
+# ./kubernetes/service.yaml
+# Exposes the FastAPI deployment as a network service within the GKE cluster.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: fastapi-service-svc
+  annotations:
+    # This annotation is required by the GKE Ingress controller.
+    # It creates a Network Endpoint Group (NEG) for the pods,
+    # which allows the external load balancer to send traffic directly to them.
+    cloud.google.com/neg: '{"ingress": true}'
+spec:
+  # NodePort is used because the external access is managed by the GKE Ingress,
+  # not this service directly. The Ingress will route traffic to the NodePort.
+  type: NodePort
+  
+  # This selector must match the labels of the pods created by the Deployment.
+  selector:
+    app: fastapi-service
+    
+  ports:
+    - name: http
+      protocol: TCP
+      # The port that the Ingress will forward traffic to on this service.
+      port: 80
+      # The port on the pods that this service will target.
+      targetPort: 8080
+

@@ -1,0 +1,60 @@
+# ./kubernetes/deployment.yaml (Updated for Secret Store CSI Driver)
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fastapi-service-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: fastapi-service
+  template:
+    metadata:
+      labels:
+        app: fastapi-service
+    spec:
+      serviceAccountName: fastapi-service-sa
+      containers:
+        - name: fastapi-service-container
+          image: "" # Populated by Terraform
+          imagePullPolicy: Always
+          envFrom:
+            # Inject non-sensitive config from the ConfigMap
+            - configMapRef:
+                name: fastapi-service-config
+          ports:
+            - containerPort: 8080
+          
+          # --- Mount Google Secret Manager secrets as files ---
+          volumeMounts:
+            - name: secrets-store-inline
+              mountPath: "/mnt/secrets" # Secrets will be available as files in this directory
+              readOnly: true
+          
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "250m"
+      
+      # --- Define the volume that uses the Secret Store CSI driver ---
+      volumes:
+        - name: secrets-store-inline
+          csi:
+            driver: "secrets-store.csi.k8s.io"
+            readOnly: true
+            volumeAttributes:
+              # The GCP Service Account that has permission to access the secrets
+              secretProviderClass: "gcp-provider"
+            nodePublishSecretRef:
+              name: "gcp-sa-secret" # This would be used if not using Workload Identity
+      
+      # The CSI driver needs a SecretProviderClass to know *which* secrets to fetch
+      # This can also be a separate manifest, but is shown inline here for clarity
+      # via a placeholder for a more complex setup. For a simple setup, you
+      # would define a SecretProviderClass resource.
+      # For now, we will rely on Terraform to correctly configure the permissions.
+

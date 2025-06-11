@@ -1,0 +1,67 @@
+# .github/workflows/terraform.yml
+# This workflow manages the infrastructure using Terraform.
+
+name: 'Terraform Infrastructure CI/CD'
+
+on:
+  push:
+    branches:
+      - main # Or your default branch
+    paths:
+      - '**.tf'
+      - '**.tfvars'
+  pull_request:
+    paths:
+      - '**.tf'
+      - '**.tfvars'
+
+# These environment variables are used by the Terraform configuration.
+# The values are pulled from the GitHub secrets we created earlier.
+env:
+  TF_VAR_gcp_project_id: ${{ secrets.GCP_PROJECT_ID }}
+  TF_VAR_cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+  TF_VAR_cloudflare_zone_id: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+
+jobs:
+  terraform:
+    name: 'Terraform'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write' # Required for Workload Identity Federation
+
+    steps:
+      # 1. Checkout the repository so the workflow can access the Terraform files
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. Authenticate to Google Cloud using Workload Identity Federation
+      - name: 'Authenticate to Google Cloud'
+        id: 'auth'
+        uses: 'google-github-actions/auth@v2'
+        with:
+          workload_identity_provider: '${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}'
+          service_account: '${{ secrets.GCP_SERVICE_ACCOUNT }}'
+
+      # 3. Setup Terraform with the specified version
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      # 4. Initialize Terraform. This downloads the providers and configures the backend.
+      - name: Terraform Init
+        id: init
+        run: terraform init -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}"
+
+      # 5. Generate a Terraform plan.
+      #    For pull requests, this shows the proposed changes.
+      #    For pushes to main, this is a final check before applying.
+      - name: Terraform Plan
+        id: plan
+        run: terraform plan -no-color
+        if: github.event_name == 'pull_request'
+
+      # 6. Apply the Terraform plan.
+      #    This step only runs on pushes to the 'main' branch.
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: terraform apply -auto-approve
