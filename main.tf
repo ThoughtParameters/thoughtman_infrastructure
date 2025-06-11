@@ -111,7 +111,7 @@ module "vpc" {
   gcp_region = var.gcp_region
   network_name = "thoughtman-vpc"
   project_id = var.gcp_project_id
-  subnet_ip_cidr = "10.201.0/24"
+  subnet_ip_cidr = "10.201.0.0/24"
 }
 
 module "gke" {
